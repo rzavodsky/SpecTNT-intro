@@ -55,6 +55,7 @@ trainer:
   precision: 32
   accumulate_grad_batches: 16
   check_val_every_n_epoch: 5
+  log_every_n_steps: 3
   max_steps: 1000000
 
 criterion:
@@ -65,6 +66,15 @@ callbacks:
   lr_monitor:
     _target_: pytorch_lightning.callbacks.LearningRateMonitor
     logging_interval: epoch
+  model_checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    dirpath: checkpoints/
+    filename: "{best_epoch:02d}"
+    monitor: val_loss
+    mode: min
+    save_last: true
+    save_top_k: 1
+    verbose: true
 
 optim:
   _target_: torch.optim.AdamW
@@ -74,15 +84,6 @@ optim:
   lr: 0.0005
   weight_decay: 0.005
 
-model_checkpoint:
-  _target_: pytorch_lightning.callbacks.ModelCheckpoint
-  dirpath: checkpoints/
-  filename: "{best_epoch:02d}"
-  monitor: val_loss
-  mode: min
-  save_last: true
-  save_top_k: 1
-  verbose: true
 
 logger:
   _target_: pytorch_lightning.loggers.tensorboard.TensorBoardLogger

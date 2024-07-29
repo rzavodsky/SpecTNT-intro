@@ -1,11 +1,12 @@
+import hydra
 import librosa
 import torch as th
 import torch.nn as nn
 import hydra.utils as hu
-from omegaconf import OmegaConf
 
 
-def predict(audio_path: str, cfg_path: str, ckpt_path: str) -> th.Tensor:
+@hydra.main(config_path="configs/", config_name="beats", version_base=None)
+def predict(cfg) -> th.Tensor:
     """
     Args:
         audio_path: string path to audio file to be analyzed
@@ -16,11 +17,11 @@ def predict(audio_path: str, cfg_path: str, ckpt_path: str) -> th.Tensor:
         probs_list: torch.Tensor of estimated probability distribution over output classes for each output frame
     """
     # Load config and params
-    cfg = OmegaConf.load(cfg_path)
-    input_length, sample_rate, batch_size = (
+    input_length, sample_rate, batch_size, audio_path = (
         cfg.datamodule.input_length,
         cfg.datamodule.sample_rate,
-        cfg.datamodule.batch_size
+        cfg.datamodule.batch_size,
+        cfg.audio_path,
     )
     # Load audio
     audio, _ = librosa.load(audio_path, sr=sample_rate, mono=True)
@@ -30,6 +31,7 @@ def predict(audio_path: str, cfg_path: str, ckpt_path: str) -> th.Tensor:
     fe_model = hu.instantiate(cfg.fe_model)
     net = hu.instantiate(cfg.net, fe_model=fe_model)
     # Load weights
+    ckpt_path = getattr(cfg, 'ckpt_path', None)
     if ckpt_path is not None:
         ckpt = th.load(ckpt_path, map_location="cpu")
         net_state_dict = {k.replace("net.", ""): v for k,
@@ -56,3 +58,6 @@ def predict(audio_path: str, cfg_path: str, ckpt_path: str) -> th.Tensor:
                 [probs_list, probs.flatten(end_dim=1).cpu()], dim=0)
     return probs_list
 
+
+if __name__ == "__main__":
+    predict()

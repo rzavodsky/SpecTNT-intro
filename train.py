@@ -1,9 +1,9 @@
 import hydra
 import hydra.utils as hu
 import pytorch_lightning as pl
+from pytorch_lightning.profilers import AdvancedProfiler
 
-
-@hydra.main(config_path="configs/", config_name="beats")
+@hydra.main(config_path="configs/", config_name="beats", version_base=None)
 def main(cfg):
     if "seed" in cfg:
         pl.seed_everything(cfg.seed)
@@ -14,6 +14,7 @@ def main(cfg):
         cfg.net,
         fe_model=fe_model
     )
+
     optimizer = hu.instantiate(cfg.optim, params=net.parameters())
     lr_scheduler = hu.instantiate(
         cfg.lr_scheduler, optimizer) if "lr_scheduler" in cfg else None
@@ -30,12 +31,11 @@ def main(cfg):
         datamodule=datamodule
     )
 
-    model_ckpt = hu.instantiate(cfg.model_checkpoint)
     logger, callbacks = [], []
     profiler = None
     if "profiler" in cfg.trainer and cfg.trainer.profiler:
-        profiler = pl.profiler.AdvancedProfiler(dirpath=cfg.logger.save_dir,
-                                                filename=cfg.experiment)
+        profiler = AdvancedProfiler(dirpath=cfg.logger.save_dir,
+                                    filename=cfg.experiment)
     if "logger" in cfg:
         logger = hu.instantiate(cfg.logger)
     if "callbacks" in cfg:
@@ -44,7 +44,6 @@ def main(cfg):
 
     if "resume" in cfg:
         trainer = hu.instantiate(cfg.trainer,
-                                 checkpoint_callback=model_ckpt,
                                  callbacks=callbacks,
                                  logger=logger,
                                  resume_from_checkpoint=cfg.resume.ckpt_path,
@@ -52,7 +51,6 @@ def main(cfg):
         print("Resuming model checkpoint..")
     else:
         trainer = hu.instantiate(cfg.trainer,
-                                 checkpoint_callback=model_ckpt,
                                  callbacks=callbacks,
                                  logger=logger,
                                  profiler=profiler)

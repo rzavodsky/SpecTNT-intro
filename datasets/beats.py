@@ -40,6 +40,7 @@ class DummyBeatDataset(tud.Dataset):
 
 class DummyBeatDataModule(pl.LightningDataModule):
     def __init__(self, batch_size, n_workers, pin_memory, sample_rate, input_length, hop_length, time_shrinking):
+        super().__init__()
         self.batch_size = batch_size
         self.n_workers = n_workers
         self.pin_memory = pin_memory
