@@ -65,6 +65,14 @@ callbacks:
   lr_monitor:
     _target_: pytorch_lightning.callbacks.LearningRateMonitor
     logging_interval: epoch
+  model_checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    dirpath: checkpoints/
+    filename: "{best_epoch:02d}"
+    monitor: val_loss
+    mode: min
+    save_last: link
+    verbose: true
 
 optim:
   _target_: torch.optim.AdamW
@@ -73,15 +81,6 @@ optim:
     - 0.999
   lr: 0.0005
   weight_decay: 0.005
-
-model_checkpoint:
-  _target_: pytorch_lightning.callbacks.ModelCheckpoint
-  dirpath: checkpoints/
-  filename: "{best_epoch:02d}"
-  monitor: val_loss
-  mode: min
-  save_last: link
-  verbose: true
 
 logger:
   _target_: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
