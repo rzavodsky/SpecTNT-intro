@@ -4,6 +4,7 @@ datamodule:
   _target_: datasets.intro.IntroDataModule
   file_list_path: ../mine/sampled_files.csv
   audio_dir_path: ../mine/audio_files
+  n_workers: 8
   batch_size: 2
   pin_memory: False
   input_length: 24

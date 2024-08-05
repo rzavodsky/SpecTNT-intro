@@ -73,7 +73,7 @@ class IntroDataset(Dataset):
         return batches[chunk_index], y
 
 class IntroDataModule(L.LightningDataModule):
-    def __init__(self, file_list_path, audio_dir_path, input_length, stft_hop_length, input_hop_length, batch_size, pin_memory):
+    def __init__(self, file_list_path, audio_dir_path, input_length, stft_hop_length, input_hop_length, batch_size, pin_memory, n_workers):
         super().__init__()
         self.batch_size = batch_size
         self.pin_memory = pin_memory
@@ -82,6 +82,7 @@ class IntroDataModule(L.LightningDataModule):
         self.input_length = input_length
         self.input_hop_length = input_hop_length
         self.stft_hop_length = stft_hop_length
+        self.n_workers = n_workers
 
 
     def setup(self, stage=None):
@@ -98,13 +99,15 @@ class IntroDataModule(L.LightningDataModule):
                           batch_size=self.batch_size,
                           pin_memory=self.pin_memory,
                           shuffle=True,
-                          num_workers=8)
+                          num_workers=self.n_workers)
     def val_dataloader(self):
         return DataLoader(self.val_ds,
                           batch_size=1,
-                          pin_memory=self.pin_memory)
+                          pin_memory=self.pin_memory,
+                          num_workers=self.n_workers)
                           
     def test_dataloader(self):
         return DataLoader(self.test_ds,
                           batch_size=1,
-                          pin_memory=self.pin_memory)
+                          pin_memory=self.pin_memory,
+                          num_workers=self.n_workers)
