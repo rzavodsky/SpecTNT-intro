@@ -18,7 +18,7 @@ def sliding_window_view_with_hop(array: np.ndarray, window_size: int, hop: int) 
                       strides=(stride * hop, stride))
 
 def get_batch_count(duration, window_width, hop):
-    return max(0, np.ceil((duration - window_width) / hop)) + 1
+    return int(max(0, np.ceil((duration - window_width) / hop)) + 1)
     
 
 SAMPLE_RATE = 16000
@@ -46,13 +46,17 @@ class IntroDataset(Dataset):
         return self.length
 
     @lru_cache
-    def load_batches_from_file(self, filename):
+    def load_batches_from_file(self, filename, batch_count):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             wav, _ = librosa.load(str(self.audio_dir_path / filename),
-                                sr = SAMPLE_RATE,
-                                mono = True)
+                                  sr = SAMPLE_RATE,
+                                  mono = True,
+                                  duration = (batch_count - 1) * self.input_hop_length + self.input_length + 5,
+                                  )
         batches = sliding_window_view_with_hop(wav, int(self.input_length * SAMPLE_RATE), int(self.input_hop_length * SAMPLE_RATE))
+        assert len(batches) >= batch_count
+        batches = batches[:batch_count]
         return torch.from_numpy(batches)
 
     def __getitem__(self, index):
@@ -61,7 +65,7 @@ class IntroDataset(Dataset):
         chunk_index = index - file_start_chunk
         file = self.file_list.iloc[file_index]
 
-        batches = self.load_batches_from_file(file.filename)
+        batches = self.load_batches_from_file(file.filename, file.chunk_count)
 
         chunk_start_time = self.input_hop_length * chunk_index
         y = (torch.arange(self.frame_count) < (file.intro_end - chunk_start_time) * self.fps).type(torch.long)
@@ -93,7 +97,8 @@ class IntroDataModule(L.LightningDataModule):
         return DataLoader(self.train_ds,
                           batch_size=self.batch_size,
                           pin_memory=self.pin_memory,
-                          shuffle=True)
+                          shuffle=True,
+                          num_workers=8)
     def val_dataloader(self):
         return DataLoader(self.val_ds,
                           batch_size=1,
